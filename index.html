@@ -1091,20 +1091,26 @@ var CLAVES = {
   'ECOT-2026-04': 'trial', 'ECOT-2026-05': 'trial',
   'ECOT-2026-06': 'trial', 'ECOT-2026-07': 'trial', 'ECOT-2026-08': 'trial',
   'ECOT-2026-09': 'trial', 'ECOT-2026-10': 'trial',
-  'MAST-EREC-OP': 'pro'
+  'MAST-EREC-OP': 'pro',
+  'ECO6-2026-01': 'semi', 'ECO6-2026-02': 'semi', 'ECO6-2026-03': 'semi',
+  'ECO6-2026-04': 'semi', 'ECO6-2026-05': 'semi', 'ECO6-2026-06': 'semi',
+  'ECO6-2026-07': 'semi', 'ECO6-2026-08': 'semi', 'ECO6-2026-09': 'semi',
+  'ECO6-2026-10': 'semi'
 };
 var TRIAL_DIAS = 15;
+var SEMI_DIAS = 180;
 
 // ── SISTEMA DE CADUCIDAD TRIAL ─────────────────────────────
 function checkExpiry() {
   var plan = localStorage.getItem('pal_plan');
-  if (plan !== 'trial') return true; // lite y pro nunca caducan
+  if (plan !== 'trial' && plan !== 'semi') return true;
   var activado = parseInt(localStorage.getItem('pal_trial_date') || '0');
   if (!activado) return true;
   var diasPasados = Math.floor((Date.now() - activado) / (1000 * 60 * 60 * 24));
-  var diasRestantes = TRIAL_DIAS - diasPasados;
-  if (diasRestantes <= 0) return false; // caducado
-  return diasRestantes; // devuelve días restantes
+  var limite = (plan === 'semi') ? SEMI_DIAS : TRIAL_DIAS;
+  var diasRestantes = limite - diasPasados;
+  if (diasRestantes <= 0) return false;
+  return diasRestantes;
 }
 
 function getDiasRestantes() {
@@ -1203,6 +1209,10 @@ function checkKeyLive() {
     inp.className = 'key-input ok';
     st.className = 'key-status ok';
     st.textContent = '🎉 Trial 15 días — pulsa Activar';
+  } else if (tipo === 'semi') {
+    inp.className = 'key-input ok';
+    st.className = 'key-status ok';
+    st.textContent = '✅ Clave 6 meses EcoPintor — pulsa Activar';
   } else {
     inp.className = 'key-input ok';
     st.className = 'key-status ok';
@@ -1246,6 +1256,15 @@ function activarClave() {
     var hint2 = document.getElementById('libre-hint');
     if (hint2) hint2.innerHTML = '🎉 Trial activo · 15 días gratis';
     toast('🎉 Trial activado · 15 días gratis · ¡A presupuestar!');
+  } else if (tipo === 'semi') {
+    isPro = true;
+    localStorage.setItem('pal_pro', '1');
+    localStorage.setItem('pal_plan', 'semi');
+    localStorage.setItem('pal_trial_date', Date.now().toString());
+    closeClave(); closePro(); renderList();
+    var hint3 = document.getElementById('libre-hint');
+    if (hint3) hint3.innerHTML = '✅ Activo 6 meses · EcoPintor';
+    toast('✅ Activado 6 meses · ¡Bienvenido a EcoPintor!');
   } else {
     localStorage.setItem('pal_lite', '1');
     localStorage.setItem('pal_plan', 'lite');
@@ -1439,8 +1458,8 @@ document.addEventListener('DOMContentLoaded', function() {
   <div id="trial-banner" style="display:none;background:linear-gradient(135deg,#b45309,#d97706);padding:9px 16px;align-items:center;gap:10px">
     <span style="font-size:18px">⏳</span>
     <div style="flex:1">
-      <div style="font-size:12px;font-weight:800;color:white">Trial gratuito · Te quedan <span id="trial-dias" style="color:#fef3c7">15 días</span></div>
-      <div style="font-size:10px;color:rgba(255,255,255,.7)">Activa Lite (5€) o Pro (4,99€/mes) para no perder tus datos</div>
+      <div style="font-size:12px;font-weight:800;color:white">Activo · Te quedan <span id="trial-dias" style="color:#fef3c7">15 días</span></div>
+      <div style="font-size:10px;color:rgba(255,255,255,.7)">Renueva antes de que caduque para no perder tus datos</div>
     </div>
     <button onclick="openClave()" style="background:white;color:#b45309;border:none;border-radius:8px;padding:6px 10px;font-size:11px;font-weight:900;cursor:pointer;font-family:'Nunito',sans-serif;white-space:nowrap">Activar</button>
   </div>
