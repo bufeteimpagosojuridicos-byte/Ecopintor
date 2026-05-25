@@ -409,7 +409,7 @@ function entrar() {
 // ═══════════════════════════════════════════════════════════════
 // NAVEGACIÓN
 // ═══════════════════════════════════════════════════════════════
-var barSubs = ['Mis presupuestos', 'Nuevo presupuesto', 'Carta de colores', 'Calculadora de superficies', 'Tarifa Orientativa · PRO', 'Calculadora Pintura · PRO'];
+var barSubs = ['Mis presupuestos', 'Nuevo presupuesto', 'Carta de colores', 'Calculadora de superficies', 'Configuración'];
 function goPage(id, idx) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.getElementById('page-' + id).classList.add('active');
@@ -1281,6 +1281,89 @@ function desactivarPro() {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// CONFIGURACIÓN EMPRESA
+// ═══════════════════════════════════════════════════════════════
+function cargarConfig() {
+  var cfg = JSON.parse(localStorage.getItem('pal_config') || '{}');
+  if (cfg.nombre) document.getElementById('cfg-nombre').value = cfg.nombre;
+  if (cfg.tel)    document.getElementById('cfg-tel').value = cfg.tel;
+  if (cfg.email)  document.getElementById('cfg-email').value = cfg.email;
+  if (cfg.dir)    document.getElementById('cfg-dir').value = cfg.dir;
+  if (cfg.web)    document.getElementById('cfg-web').value = cfg.web;
+  if (cfg.mo)     document.getElementById('cfg-mo').value = cfg.mo;
+  if (cfg.m2)     document.getElementById('cfg-m2').value = cfg.m2;
+  if (cfg.logo)   mostrarLogoPreview(cfg.logo);
+}
+
+function guardarConfig() {
+  var cfg = {
+    nombre: document.getElementById('cfg-nombre').value.trim(),
+    tel:    document.getElementById('cfg-tel').value.trim(),
+    email:  document.getElementById('cfg-email').value.trim(),
+    dir:    document.getElementById('cfg-dir').value.trim(),
+    web:    document.getElementById('cfg-web').value.trim(),
+    mo:     document.getElementById('cfg-mo').value,
+    m2:     document.getElementById('cfg-m2').value,
+  };
+  var logoActual = JSON.parse(localStorage.getItem('pal_config') || '{}').logo;
+  if (logoActual) cfg.logo = logoActual;
+  localStorage.setItem('pal_config', JSON.stringify(cfg));
+  toast('✓ Configuración guardada');
+}
+
+function subirLogo(input) {
+  var file = input.files[0];
+  if (!file) return;
+  if (file.size > 2 * 1024 * 1024) { toast('⚠️ Imagen demasiado grande (máx 2MB)'); return; }
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var b64 = e.target.result;
+    mostrarLogoPreview(b64);
+    var cfg = JSON.parse(localStorage.getItem('pal_config') || '{}');
+    cfg.logo = b64;
+    localStorage.setItem('pal_config', JSON.stringify(cfg));
+    toast('✓ Logo guardado');
+  };
+  reader.readAsDataURL(file);
+}
+
+function mostrarLogoPreview(src) {
+  var prev = document.getElementById('logo-preview');
+  if (!prev) return;
+  prev.innerHTML = '<img src="' + src + '" style="max-width:180px;max-height:80px;border-radius:8px;object-fit:contain">';
+  var btns = document.getElementById('logo-btns');
+  if (btns) btns.style.display = 'flex';
+}
+
+function eliminarLogo() {
+  if (!confirm('¿Eliminar el logo?')) return;
+  var cfg = JSON.parse(localStorage.getItem('pal_config') || '{}');
+  delete cfg.logo;
+  localStorage.setItem('pal_config', JSON.stringify(cfg));
+  document.getElementById('logo-preview').innerHTML = '<div style="font-size:40px">🖼️</div><div style="font-size:13px;color:#64748b;font-weight:700">Toca para subir tu logo</div>';
+  var btns = document.getElementById('logo-btns');
+  if (btns) btns.style.display = 'none';
+  toast('Logo eliminado');
+}
+
+function cambiarPin() {
+  var pin = prompt('Introduce nuevo PIN (4 dígitos):');
+  if (!pin || pin.length !== 4 || isNaN(pin)) { toast('PIN inválido — debe tener 4 dígitos'); return; }
+  localStorage.setItem('pal_pin', pin);
+  toast('✓ PIN actualizado');
+}
+
+function borrarDatos() {
+  if (!confirm('¿Borrar TODOS los datos? Esta acción no se puede deshacer.')) return;
+  var keys = ['pal_v1','pal_libre','pal_trial_date','pal_plan'];
+  keys.forEach(k => localStorage.removeItem(k));
+  presups = []; partidas = [];
+  renderList();
+  toast('Datos borrados');
+  goPage('list', 0);
+}
+
+// ═══════════════════════════════════════════════════════════════
 // INIT — esperar DOM listo
 // ═══════════════════════════════════════════════════════════════
 document.addEventListener('DOMContentLoaded', function() {
@@ -1294,6 +1377,7 @@ document.addEventListener('DOMContentLoaded', function() {
   if (fechaEl) fechaEl.value = new Date().toISOString().split('T')[0];
   // Render inicial
   renderC('NCS');
+  cargarConfig();
 });
 </script>
 
@@ -1649,14 +1733,101 @@ document.addEventListener('DOMContentLoaded', function() {
     </div>
   </div>
 
+  <!-- ══════════════════════════════════════════
+       PAGE: CONFIGURACIÓN
+  ══════════════════════════════════════════ -->
+  <div class="page" id="page-config">
+    <div class="page-title">⚙️ Configuración</div>
+    <div class="page-sub">Datos de tu empresa</div>
+
+    <!-- DATOS EMPRESA -->
+    <div class="card">
+      <div class="card-hdr">🏢 Datos de Empresa</div>
+      <div class="ig">
+        <label class="il">Nombre de empresa</label>
+        <input class="if" id="cfg-nombre" placeholder="Ej: EcoPintor Juan Carlos">
+      </div>
+      <div class="ir2">
+        <div class="ig">
+          <label class="il">Teléfono</label>
+          <input class="if" id="cfg-tel" placeholder="600..." type="tel">
+        </div>
+        <div class="ig">
+          <label class="il">Email</label>
+          <input class="if" id="cfg-email" placeholder="info@..." type="email">
+        </div>
+      </div>
+      <div class="ig">
+        <label class="il">Dirección</label>
+        <input class="if" id="cfg-dir" placeholder="C/ Mayor 1, Ciudad">
+      </div>
+      <div class="ig">
+        <label class="il">Web / Instagram</label>
+        <input class="if" id="cfg-web" placeholder="www. o @usuario">
+      </div>
+    </div>
+
+    <!-- LOGO -->
+    <div class="card">
+      <div class="card-hdr">🖼️ Logo de Empresa</div>
+      <div style="border:2px dashed #e2e8f0;border-radius:12px;padding:16px;text-align:center;cursor:pointer" onclick="document.getElementById('logo-input').click()">
+        <div id="logo-preview" style="margin-bottom:10px">
+          <div style="font-size:40px">🖼️</div>
+          <div style="font-size:13px;color:#64748b;font-weight:700">Toca para subir tu logo</div>
+          <div style="font-size:11px;color:#94a3b8;margin-top:3px">JPG, PNG · máx. 2MB</div>
+        </div>
+        <input type="file" id="logo-input" accept="image/*" style="display:none" onchange="subirLogo(this)">
+      </div>
+      <div style="display:flex;gap:8px;margin-top:10px" id="logo-btns" style="display:none">
+        <button class="btn btn-ghost btn-sm" style="flex:1" onclick="document.getElementById('logo-input').click()">✏️ Cambiar</button>
+        <button class="btn btn-red btn-sm" style="flex:1" onclick="eliminarLogo()">🗑️ Eliminar</button>
+      </div>
+    </div>
+
+    <!-- TARIFAS -->
+    <div class="card">
+      <div class="card-hdr">💶 Tarifas por Defecto</div>
+      <div class="ir2">
+        <div class="ig">
+          <label class="il">Mano de obra (€/hora)</label>
+          <input class="if" id="cfg-mo" type="number" placeholder="25" step="0.5">
+        </div>
+        <div class="ig">
+          <label class="il">Pintura (€/m²)</label>
+          <input class="if" id="cfg-m2" type="number" placeholder="8" step="0.5">
+        </div>
+      </div>
+    </div>
+
+    <!-- GUARDAR -->
+    <button class="btn btn-primary" onclick="guardarConfig()" style="margin-bottom:12px">💾 Guardar cambios</button>
+
+    <!-- SEGURIDAD -->
+    <div class="card">
+      <div class="card-hdr">🔒 Seguridad</div>
+      <button class="btn btn-ghost" style="width:100%;justify-content:center" onclick="cambiarPin()">🔑 Cambiar PIN de acceso</button>
+    </div>
+
+    <!-- DATOS -->
+    <div class="card">
+      <div class="card-hdr">🗂️ Datos</div>
+      <button class="btn btn-red" style="width:100%;justify-content:center" onclick="borrarDatos()">🗑️ Borrar todos los datos</button>
+      <div style="font-size:11px;color:#94a3b8;text-align:center;margin-top:8px">Esta acción no se puede deshacer</div>
+    </div>
+
+    <!-- VERSION -->
+    <div style="text-align:center;padding:16px;font-size:11px;color:#94a3b8;font-weight:600">
+      EcoPintor App · v1.0 · Desarrollado por JM Prestige AI
+    </div>
+  </div>
+
   <!-- BOTTOM NAV -->
   <nav class="bottom-nav">
     <button class="bnav-btn active" id="bn0" onclick="goPage('list',0)"><span class="ico">📋</span>Presups.</button>
     <button class="bnav-btn" id="bn1" onclick="goPage('nuevo',1)"><span class="ico">➕</span>Nuevo</button>
     <button class="bnav-btn" id="bn2" onclick="goPage('colores',2)"><span class="ico">🎨</span>Colores</button>
     <button class="bnav-btn" id="bn3" onclick="goPage('calc',3)"><span class="ico">📐</span>Medidas</button>
-    <button class="bnav-btn bnav-pro" id="bn4" onclick="goProPage('tarifa')"><span class="ico">📋🔒</span>Tarifa</button>
-    <button class="bnav-btn bnav-pro" id="bn5" onclick="goProPage('litros')"><span class="ico">🧮🔒</span>Litros</button>
+    <button class="bnav-btn" id="bn4" onclick="goPage('config',4)"><span class="ico">⚙️</span>Config.</button>
   </nav>
 </div>
 
